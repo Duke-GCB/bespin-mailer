@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import os
 import pika
 import requests
@@ -11,14 +10,17 @@ MESSAGE_QUEUE_USERNAME = "MESSAGE_QUEUE_USERNAME"
 MESSAGE_QUEUE_PASSWORD = "MESSAGE_QUEUE_PASSWORD"
 BESPIN_API_TOKEN = "BESPIN_API_TOKEN"
 BESPIN_API_URL = "BESPIN_API_URL"
+EMAIL_RETRY_COUNT = "RESEND_RETRY_COUNT"
+RETRY_WAIT_MS = "RETRY_WAIT_MS"
 
 # Global settings
 EMAIL_EXCHANGE = "EmailExchange"
 EMAIL_QUEUE = "EmailQueue"
-ROUTING_KEY='SendEmail'
+ROUTING_KEY = "SendEmail"
 RETRY_EXCHANGE = "RetryExchange"
 RETRY_QUEUE = "RetryQueue"
-RETRY_TTL_MS = '10000'  # 10 seconds
+RETRY_WAIT_MS_DEFAULT = '10000'  # 10 seconds
+EMAIL_RETRY_COUNT_DEFAULT = '10'
 
 
 class EnvConfig(object):
@@ -29,6 +31,8 @@ class EnvConfig(object):
         host = os.environ.get(MESSAGE_QUEUE_HOST, "127.0.0.1")
         username = os.environ.get(MESSAGE_QUEUE_USERNAME, "guest")
         password = os.environ.get(MESSAGE_QUEUE_PASSWORD, "guest")
+        self.email_retry_count = int(os.environ.get(EMAIL_RETRY_COUNT, EMAIL_RETRY_COUNT_DEFAULT))
+        self.retry_wait_ms = os.environ.get(RETRY_WAIT_MS, RETRY_WAIT_MS_DEFAULT)
         self.bespin_api_token = os.environ[BESPIN_API_TOKEN]
         self.bespin_api_url = os.environ[BESPIN_API_URL]
         self.work_queue_config = WorkQueueConfig(host, username, password)
@@ -76,10 +80,10 @@ class SendEmailMessage(object):
         )
 
     @staticmethod
-    def try_create_from_body(body):
+    def try_create_from_body(body, config):
         email_message_dict = pickle.loads(body)
         send_email_id = email_message_dict.get("send_email")
-        retry_count = email_message_dict.get("retry_count", 0)
+        retry_count = email_message_dict.get("retry_count", config.email_retry_count)
         if send_email_id:
             return SendEmailMessage(send_email_id, retry_count)
         return None
@@ -97,6 +101,7 @@ class MailSender(object):
     def __init__(self, config, routing_key=ROUTING_KEY):
         work_queue_connection = WorkQueueConnection(config)
         work_queue_connection.connect()
+        self.config = config
         self.channel = work_queue_connection.connection.channel()
         self.routing_key = routing_key
         self._declare_email_exchange_and_queue()
@@ -126,7 +131,7 @@ class MailSender(object):
                               no_ack=True)
 
     def email_callback(self, ch, method, properties, body):
-        send_email_message = SendEmailMessage.try_create_from_body(body)
+        send_email_message = SendEmailMessage.try_create_from_body(body, self.config)
         if send_email_message:
             email_send_id = send_email_message.send_email_id
             try:
@@ -141,21 +146,24 @@ class MailSender(object):
         send_email_id = send_email_message.send_email_id
         if send_email_message.retry_count:
             send_email_message.retry_count -= 1
-            print("Requeue SendEmail {} in {} ms (retries remaining: {}).".format(
-                send_email_id, RETRY_TTL_MS, send_email_message.retry_count))
+            print("Retrying SendEmail {} in {} ms (retries remaining: {}).".format(
+                send_email_id, self.config.retry_wait_ms, send_email_message.retry_count))
             self.retry_message(send_email_message.build_body())
         else:
             print("Giving up on SendEmail {} - out of retries.".format(send_email_id))
 
     def retry_message(self, body):
-        basic_properties = pika.BasicProperties(expiration=RETRY_TTL_MS)
+        basic_properties = pika.BasicProperties(expiration=self.config.retry_wait_ms)
         self.channel.basic_publish(exchange=RETRY_EXCHANGE,
                                    routing_key=self.routing_key,
                                    body=body,
                                    properties=basic_properties)
 
 
-if __name__ == '__main__':
+def main():
     config = EnvConfig()
     mail_sender = MailSender(config)
     mail_sender.start_consuming()
+
+if __name__ == '__main__':
+    main()
