@@ -111,6 +111,7 @@ class MailSender(object):
         self.bespin_api = BespinApi(config)
 
     def start_consuming(self):
+        print("Listening for email messages...")
         self.channel.start_consuming()
 
     def _declare_email_exchange_and_queue(self):
@@ -136,7 +137,9 @@ class MailSender(object):
         if send_email_message:
             email_send_id = send_email_message.send_email_id
             try:
+                print("Sending email {} to bespin.".format(email_send_id))
                 self.bespin_api.email_message_send(email_send_id)
+                print("Done sending email {} to bespin.".format(email_send_id))
             except requests.HTTPError as err:
                 print("Bespin API sending email {} failed with {}".format(email_send_id, err))
                 self.send_email_retry(send_email_message)
