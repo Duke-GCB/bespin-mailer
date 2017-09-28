@@ -82,10 +82,11 @@ class SendEmailMessage(object):
     @staticmethod
     def try_create_from_body(body, config):
         email_message_dict = pickle.loads(body)
-        send_email_id = email_message_dict.get("send_email")
-        retry_count = email_message_dict.get("retry_count", config.email_retry_count)
-        if send_email_id:
-            return SendEmailMessage(send_email_id, retry_count)
+        if isinstance(email_message_dict, dict):
+            send_email_id = email_message_dict.get("send_email")
+            retry_count = email_message_dict.get("retry_count", config.email_retry_count)
+            if send_email_id:
+                return SendEmailMessage(send_email_id, retry_count)
         return None
 
     def publish(self, work_queue_connection):
