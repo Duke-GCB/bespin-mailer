@@ -10,7 +10,7 @@ MESSAGE_QUEUE_USERNAME = "MESSAGE_QUEUE_USERNAME"
 MESSAGE_QUEUE_PASSWORD = "MESSAGE_QUEUE_PASSWORD"
 BESPIN_API_TOKEN = "BESPIN_API_TOKEN"
 BESPIN_API_URL = "BESPIN_API_URL"
-EMAIL_RETRY_COUNT = "RESEND_RETRY_COUNT"
+RETRY_COUNT = "RETRY_COUNT"
 RETRY_WAIT_MS = "RETRY_WAIT_MS"
 
 # Global settings
@@ -20,7 +20,7 @@ ROUTING_KEY = "SendEmail"
 RETRY_EXCHANGE = "RetryExchange"
 RETRY_QUEUE = "RetryQueue"
 RETRY_WAIT_MS_DEFAULT = '10000'  # 10 seconds
-EMAIL_RETRY_COUNT_DEFAULT = '10'
+RETRY_COUNT_DEFAULT = '10'
 
 
 class EnvConfig(object):
@@ -31,7 +31,7 @@ class EnvConfig(object):
         host = os.environ.get(MESSAGE_QUEUE_HOST, "127.0.0.1")
         username = os.environ.get(MESSAGE_QUEUE_USERNAME, "guest")
         password = os.environ.get(MESSAGE_QUEUE_PASSWORD, "guest")
-        self.email_retry_count = int(os.environ.get(EMAIL_RETRY_COUNT, EMAIL_RETRY_COUNT_DEFAULT))
+        self.email_retry_count = int(os.environ.get(RETRY_COUNT, RETRY_COUNT_DEFAULT))
         self.retry_wait_ms = os.environ.get(RETRY_WAIT_MS, RETRY_WAIT_MS_DEFAULT)
         self.bespin_api_token = os.environ[BESPIN_API_TOKEN]
         self.bespin_api_url = os.environ[BESPIN_API_URL]
