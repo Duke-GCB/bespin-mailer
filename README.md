@@ -1,7 +1,7 @@
 # bespin-mailer 
 Bespin mail delivery service ![Build Status](https://circleci.com/gh/Duke-GCB/bespin-mailer.svg?style=shield&circle-token=:circle-token)
 
-### requirements
+### Requirements
 - python/pip - python 2 or 3
 
 ### External requirements
