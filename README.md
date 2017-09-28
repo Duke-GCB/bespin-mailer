@@ -10,7 +10,7 @@ Bespin mail delivery service. Monitors a message queue for a particular `send_em
 
 ### Installing
 ```
-pip install -r requirements
+pip install -r requirements.txt
 ```
 
 ### Setup
