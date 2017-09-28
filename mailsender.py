@@ -52,8 +52,8 @@ class BespinApi(object):
     def _make_url(self, suffix):
         return '{}/admin/{}'.format(self.url, suffix)
 
-    def send_email(self, send_email_id):
-        path = 'send-email/{}'.format(send_email_id)
+    def email_message_send(self, send_email_id):
+        path = 'email-messages/{}/send/'.format(send_email_id)
         url = self._make_url(path)
         resp = requests.post(url, headers=self.headers(), json={})
         resp.raise_for_status()
@@ -130,7 +130,7 @@ class MailSender(object):
         if send_email_message:
             email_send_id = send_email_message.send_email_id
             try:
-                self.bespin_api.send_email(email_send_id)
+                self.bespin_api.email_message_send(email_send_id)
             except requests.HTTPError as err:
                 print("Bespin API sending email {} failed with {}".format(email_send_id, err))
                 self.send_email_retry(send_email_message)
