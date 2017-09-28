@@ -1,3 +1,9 @@
+"""
+Listens for 'SendEmail' messages on a AMQP queue.
+When this message arrives it POSTs a message back to bespin-api asking for the email to be sent.
+If this fails it queues the message in a retry exchange/queue that will retry the POST to bespin-api.
+"""
+
 import os
 import pika
 import requests
@@ -39,6 +45,9 @@ class EnvConfig(object):
 
 
 class BespinApi(object):
+    """
+    Communicates with bespin-api requesting an email to be sent
+    """
     def __init__(self, config):
         self.token = config.bespin_api_token
         self.url = config.bespin_api_url
@@ -57,6 +66,11 @@ class BespinApi(object):
         return '{}/admin/{}'.format(self.url, suffix)
 
     def email_message_send(self, send_email_id):
+        """
+        Request bespin-api to send message with id send_email_id
+        :param send_email_id: str: id of message to send
+        :return: dict: json decoded response from bespin-api
+        """
         path = 'email-messages/{}/send/'.format(send_email_id)
         url = self._make_url(path)
         resp = requests.post(url, headers=self.headers(), json={})
@@ -65,6 +79,9 @@ class BespinApi(object):
 
 
 class SendEmailMessage(object):
+    """
+    Builds/Parses the message payload for requesting emails to be sent.
+    """
     def __init__(self, send_email_id, retry_count):
         self.send_email_id = send_email_id
         self.retry_count = retry_count
@@ -72,6 +89,9 @@ class SendEmailMessage(object):
         self.routing_key = ROUTING_KEY
 
     def build_body(self):
+        """
+        Build value that can be sent through the AMQP queue.
+        """
         return pickle.dumps(
             {
                 "send_email": self.send_email_id,
@@ -81,6 +101,12 @@ class SendEmailMessage(object):
 
     @staticmethod
     def try_create_from_body(body, config):
+        """
+        Parse body out into a SendEmailMessage or return None if not possible.
+        :param body: bytes: data arriving from AMQP queue
+        :param config: EnvConfig: configuration that determines retry_count if not passed in message
+        :return: SendEmailMessage or None
+        """
         email_message_dict = pickle.loads(body)
         if isinstance(email_message_dict, dict):
             send_email_id = email_message_dict.get("send_email")
@@ -89,17 +115,16 @@ class SendEmailMessage(object):
                 return SendEmailMessage(send_email_id, retry_count)
         return None
 
-    def publish(self, work_queue_connection):
-        work_queue_connection.connect()
-        channel = work_queue_connection.connection.channel()
-        channel.basic_publish(exchange=EMAIL_EXCHANGE,
-                              routing_key=ROUTING_KEY,
-                              body=self.build_body())
-        work_queue_connection.close()
-
 
 class MailSender(object):
+    """
+    Listens to AMQP queue and sends/retries emails.
+    """
     def __init__(self, config, routing_key=ROUTING_KEY):
+        """
+        :param config: EnvConfig: configuration used to talk to AMQP queue and bespin-api
+        :param routing_key: str: routing key to be used for our messages
+        """
         work_queue_connection = WorkQueueConnection(config)
         work_queue_connection.connect()
         self.config = config
@@ -111,6 +136,9 @@ class MailSender(object):
         self.bespin_api = BespinApi(config)
 
     def start_consuming(self):
+        """
+        Blocks and calls email_callback when the appropriate AMQP message is received.
+        """
         print("Listening for email messages...")
         self.channel.start_consuming()
 
@@ -133,6 +161,10 @@ class MailSender(object):
                               no_ack=True)
 
     def email_callback(self, ch, method, properties, body):
+        """
+        Parses SendEmailMessage from body and sends email message.
+        On failure will queue message into retry queue for processing later.
+        """
         send_email_message = SendEmailMessage.try_create_from_body(body, self.config)
         if send_email_message:
             email_send_id = send_email_message.send_email_id
@@ -147,6 +179,10 @@ class MailSender(object):
             print(" [x] Received invalid SendEmail request {}".format(pickle.loads(body)))
 
     def send_email_retry(self, send_email_message):
+        """
+        If we haven't run out of retries put message into retry queue/exchange
+        :param send_email_message: SendEmailMessage: message to retry
+        """
         send_email_id = send_email_message.send_email_id
         if send_email_message.retry_count:
             send_email_message.retry_count -= 1
@@ -157,6 +193,9 @@ class MailSender(object):
             print("Giving up on SendEmail {} - out of retries.".format(send_email_id))
 
     def retry_message(self, body):
+        """
+        Put body into retry exchange/queue
+        """
         basic_properties = pika.BasicProperties(expiration=self.config.retry_wait_ms)
         self.channel.basic_publish(exchange=RETRY_EXCHANGE,
                                    routing_key=self.routing_key,

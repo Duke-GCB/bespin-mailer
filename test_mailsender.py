@@ -94,16 +94,6 @@ class SendEmailMessageTests(TestCase):
         self.assertEqual(send_email_message.send_email_id, '123')
         self.assertEqual(send_email_message.retry_count, 10)
 
-    def test_publish(self):
-        mock_work_queue_connection = Mock()
-        send_email_message = SendEmailMessage(send_email_id=1, retry_count=2)
-        send_email_message.publish(mock_work_queue_connection)
-        expected_body = send_email_message.build_body()
-        mock_work_queue_connection.connect.assert_called()
-        basic_publish_method = mock_work_queue_connection.connection.channel.return_value.basic_publish
-        basic_publish_method.assert_called_with(body=expected_body, exchange='EmailExchange', routing_key='SendEmail')
-        mock_work_queue_connection.close.assert_called()
-
 
 class MailSenderTests(TestCase):
     @patch('mailsender.WorkQueueConnection')
