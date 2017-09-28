@@ -1,5 +1,5 @@
 # bespin-mailer ![Build Status](https://circleci.com/gh/Duke-GCB/bespin-mailer.svg?style=shield&circle-token=:circle-token)
-Bespin mail delivery service 
+Bespin mail delivery service. Monitors a message queue for a particular `send_email` message and posts a message to the appropriate [Bespin-Api](github.com/Duke-GCB/bespin-api) REST endpoint. If the POST fails it will retry after waiting some time.
 
 ### Requirements
 - python/pip - python 2 or 3
