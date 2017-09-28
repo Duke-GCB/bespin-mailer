@@ -1,23 +1,18 @@
-import pika
-from lando_messaging.workqueue import
+import sys
+from lando_messaging.workqueue import WorkQueueConnection
+from mailsender import EnvConfig, SendEmailMessage
 
-EMAIL_EXCHANGE = "EmailExchange"
+
+def request_email_send(config, send_email_id):
+    work_queue_connection = WorkQueueConnection(config)
+    send_email_message = SendEmailMessage(send_email_id, retry_count=3)
+    send_email_message.publish(work_queue_connection)
+    print("Sent email request for id {}.".format(send_email_id))
 
 
-class EmailClient(object):
-    def __init__(self, config, exchange_name=EMAIL_EXCHANGE):
-        self.exchange_name = exchange_name
-        self.host = config.host
-        self.username = config.username
-        self.password = config.password
-
-    def send(self, send_email_id):
-
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-        channel = connection.channel()
-
-        channel.basic_publish(exchange=EMAIL_EXCHANGE,
-                              routing_key='',
-                              body='Hello World!')
-        print(" [x] Sent 'Hello World!'")
-        connection.close()
+if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        send_email_id = sys.argv[1]
+        request_email_send(EnvConfig(), send_email_id)
+    else:
+        print("Usage: python requestmailsend.py <send_email_id>")
