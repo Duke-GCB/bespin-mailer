@@ -14,8 +14,7 @@ pip install -r requirements.txt
 ```
 
 ### Setup
-Export environment variables as outlined in TODO's in `setup.sh`.
-
+Fill in environment variables in `setup.sh` replacing __TODO__ with actual values.
 
 ### Run
 ```
