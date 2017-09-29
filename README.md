@@ -19,5 +19,6 @@ Export environment variables as outlined in TODO's in `setup.sh`.
 
 ### Run
 ```
+source setup.sh
 python mailsender.py
 ```
