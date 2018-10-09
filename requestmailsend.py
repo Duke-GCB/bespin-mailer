@@ -24,7 +24,7 @@ def request_email_send(config, send_email_id):
                           routing_key=ROUTING_KEY,
                           body=body)
     work_queue_connection.close()
-    print("Sent email request for id {}.".format(send_email_id))
+    print(("Sent email request for id {}.".format(send_email_id)))
 
 
 def main():
