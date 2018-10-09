@@ -169,14 +169,14 @@ class MailSender(object):
         if send_email_message:
             email_send_id = send_email_message.send_email_id
             try:
-                print(("Sending email {} to bespin-api.".format(email_send_id)))
+                print("Sending email {} to bespin-api.".format(email_send_id))
                 self.bespin_api.email_message_send(email_send_id)
-                print(("Success sending email {} to bespin-api.".format(email_send_id)))
+                print("Success sending email {} to bespin-api.".format(email_send_id))
             except requests.HTTPError as err:
-                print(("Bespin API sending email {} failed with {}".format(email_send_id, err)))
+                print("Bespin API sending email {} failed with {}".format(email_send_id, err))
                 self.send_email_retry(send_email_message)
         else:
-            print((" [x] Received invalid SendEmail request {}".format(pickle.loads(body))))
+            print(" [x] Received invalid SendEmail request {}".format(pickle.loads(body)))
 
     def send_email_retry(self, send_email_message):
         """
@@ -186,11 +186,11 @@ class MailSender(object):
         send_email_id = send_email_message.send_email_id
         if send_email_message.retry_count:
             send_email_message.retry_count -= 1
-            print(("Retrying SendEmail {} in {} ms (retries remaining: {}).".format(
-                send_email_id, self.config.retry_wait_ms, send_email_message.retry_count)))
+            print("Retrying SendEmail {} in {} ms (retries remaining: {}).".format(
+                send_email_id, self.config.retry_wait_ms, send_email_message.retry_count))
             self.retry_message(send_email_message.build_body())
         else:
-            print(("Giving up on SendEmail {} - out of retries.".format(send_email_id)))
+            print("Giving up on SendEmail {} - out of retries.".format(send_email_id))
 
     def retry_message(self, body):
         """
