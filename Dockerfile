@@ -1,4 +1,6 @@
-FROM python:2.7.13
+FROM python:3.6
+LABEL maintainer="dan.leehr@duke.edu"
+
 ADD . /bespin-mailer
 WORKDIR /bespin-mailer
 RUN pip install -r requirements.txt
