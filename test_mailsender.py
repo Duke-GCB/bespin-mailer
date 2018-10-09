@@ -3,7 +3,7 @@ import pickle
 import requests
 from mailsender import EnvConfig, RETRY_WAIT_MS_DEFAULT, RETRY_COUNT_DEFAULT, BespinApi, \
     SendEmailMessage, EMAIL_EXCHANGE, ROUTING_KEY, MailSender
-from mock import patch, Mock, call
+from unittest.mock import patch, Mock, call
 
 
 class EnvConfigTests(TestCase):
