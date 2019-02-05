@@ -1,2 +1,2 @@
-lando-messaging==0.7.4
+lando-messaging==0.7.5
 requests==2.20.1
